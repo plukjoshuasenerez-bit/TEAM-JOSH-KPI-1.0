@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TEAM JOSH KPI Monitoring v1.3</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -23,6 +24,31 @@ label{font-size:12px;font-weight:800;color:#344054}input,select,textarea,button{
 .actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{width:auto;min-width:120px}.tablebox{overflow:auto;border:1px solid var(--line);border-radius:12px;max-height:460px}
 table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;border-bottom:1px solid #edf0f5;text-align:left;vertical-align:top}th{background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;position:sticky;top:0}tr:hover{background:#f8fafc}
 .badge{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:900}.push{background:#fee2e2;color:#991b1b}.bronze{background:#f4c38a;color:#6b3b13}.silver{background:#e5e7eb;color:#374151}.gold{background:#fde68a;color:#713f12}.diamond{background:#cffafe;color:#155e75}
+.card canvas{max-height:320px!important}
+.camera-btn{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:linear-gradient(160deg,#2b3440,#0f151d);color:#fff;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 2px rgba(255,255,255,.25),0 4px 10px rgba(0,0,0,.22);transition:.15s}
+.camera-btn:hover{transform:scale(1.07)}
+.camera-btn:active{transform:scale(.95)}
+.dash-layout{display:grid;grid-template-columns:1.7fr 1fr;gap:16px}
+.dash-layout .full{grid-column:1/-1}
+.rank-row{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:11px 13px;border:1px solid var(--line);border-radius:14px;margin-bottom:8px;background:#fff}
+.rank-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;background:var(--accent);color:var(--navy)}
+.rank-row.top1{border-color:#ffd700;box-shadow:0 4px 14px rgba(212,175,55,.25)}
+.rank-row.top1 .rank-num{background:linear-gradient(135deg,#fff6bd,#ffd700);}
+.rank-row.top2 .rank-num{background:linear-gradient(135deg,#fff,#cfd4dc)}
+.rank-row.top3 .rank-num{background:linear-gradient(135deg,#f5c08a,#e8a869)}
+.rank-name{font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rank-name .badge{padding:3px 9px;font-size:10px}
+.rank-bar{height:7px;border-radius:99px;background:#eef3f4;overflow:hidden;margin-top:6px}
+.rank-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--navy),var(--teal));border-radius:99px}
+.rank-pts{text-align:right;min-width:86px}
+.rank-pts strong{color:var(--navy);font-size:17px}
+.rank-sub{font-size:10px;color:var(--muted)}
+.ap-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px dashed var(--line)}
+.ap-row:last-child{border-bottom:none}
+.ap-name{font-weight:800;font-size:13px}
+.ap-sub{font-size:11px;color:var(--muted)}
+.ap-pts{font-weight:900;color:var(--navy);font-size:15px;white-space:nowrap}
+@media(max-width:900px){.dash-layout{grid-template-columns:1fr}}
 .medal{width:74px;height:74px;border-radius:50%;display:grid;place-items:center;font-size:28px;font-weight:900;margin:auto;border:5px solid rgba(255,255,255,.75);box-shadow:inset 0 4px 10px rgba(255,255,255,.75),inset 0 -7px 12px rgba(0,0,0,.2),0 10px 25px rgba(7,26,51,.2)}
 .medal.push{background:linear-gradient(135deg,#fca5a5,#ef4444,#991b1b);color:#fff}.medal.bronze{background:linear-gradient(135deg,#f5c08a,#b87333,#6d3f1d);color:#fff}.medal.silver{background:linear-gradient(135deg,#fff,#cfd4dc,#7d8490);color:#182033}.medal.gold{background:linear-gradient(135deg,#fff6bd,#d4af37,#9b720e);color:#2d2100}.medal.diamond{background:linear-gradient(135deg,#fff,#b9f3ff,#4b8fb5);color:#073344}
 .score-head{display:grid;grid-template-columns:120px 1fr;gap:18px;align-items:center}.small{font-size:12px;color:var(--muted)}.notice{padding:10px 12px;border-radius:10px;background:#eff6ff;color:#1e3a8a;font-weight:700;margin-bottom:12px}.hidden{display:none!important}
@@ -90,10 +116,10 @@ body.agent-mode #agentPortal{display:block}
       <div class="stat"><strong id="teamPct">0%</strong><span>Team KPI Percentage</span></div>
       <div class="stat"><strong id="agentCount">0</strong><span>Agents with Activity</span></div>
     </div>
-    <div class="charts">
-      <div class="card"><h3>Agent Ranking</h3><canvas id="rankingChart"></canvas></div>
-      <div class="card"><h3>Medal Distribution</h3><canvas id="medalChart"></canvas></div>
-      <div class="card full"><h3>Monthly Performance</h3><canvas id="monthlyChart"></canvas></div>
+    <div class="dash-layout">
+      <div class="card"><h3 style="display:flex;align-items:center;justify-content:space-between">🏆 Agent Rank List <button class="camera-btn" onclick="downloadScreenshot()" title="I-download ang dashboard as image">📷</button></h3><div id="rankList"></div></div>
+      <div class="card"><h3>Activity Points</h3><div id="actPointsList"></div></div>
+      <div class="card full"><h3>Daily Activity</h3><canvas id="dailyChart"></canvas></div>
     </div>
   </section>
 
@@ -176,6 +202,7 @@ body.agent-mode #agentPortal{display:block}
         <div><label>Base Daily Target<input type="number" id="baseTarget" min="1" value="150"></label></div>
         <div><label>Challenge Start Date<input type="date" id="challengeStart"></label></div>
         <div><label>Challenge End Date<input type="date" id="challengeEnd"></label></div>
+        <div style="grid-column:1/-1"><label>Google Apps Script Web App URL (para sa Google Sheets connection)<input id="sheetsApiUrl" placeholder="https://script.google.com/macros/s/.../exec"></label></div>
         <div><button class="btn" onclick="saveSettings()">Save Settings</button></div>
         <div><button class="ghost" onclick="resetBranding()">Reset Branding</button></div>
       </div>
@@ -243,7 +270,13 @@ const TEAM_AGENTS=[
    ============================================================ */
 const SHEETS_API_URL="https://script.google.com/macros/s/AKfycbx3NGOibmJ8oVp-4IaC7nExtkdGIVzjaShB2zeODqwhg9m-BPxbVTELheso57H2ygJv6g/exec";
 
-function cloudEnabled(){return typeof SHEETS_API_URL==='string'&&SHEETS_API_URL.indexOf('https://')===0}
+function getApiUrl(){
+  // Priority: 1) URL param na "api" (galing sa shared link), 2) Settings ng dashboard, 3) hardcoded sa taas
+  try{let p=new URLSearchParams(location.search).get('api');if(p&&p.indexOf('https://')===0)return p}catch(e){}
+  if(settings&&settings.sheetsApiUrl&&settings.sheetsApiUrl.indexOf('https://')===0)return settings.sheetsApiUrl;
+  return SHEETS_API_URL;
+}
+function cloudEnabled(){return getApiUrl().indexOf('https://')===0}
 
 const KEYS={records:'TJ_KPI_STANDALONE_RECORDS_V1',activities:'TJ_KPI_STANDALONE_ACTIVITIES_V1',settings:'TJ_KPI_STANDALONE_SETTINGS_V1',agents:'TJ_KPI_STANDALONE_AGENTS_V1'};
 const defaultActivities=[['Client Servicing',10],['Prospecting',1],['Client Presentation',50],['Selling Approach',1],['Recruitment',10],['Closing',100],['Training',5],['Branding',1],['Engage',1],['Setting Appointment',10]];
@@ -261,7 +294,7 @@ function uniqueDays(rows){return new Set(rows.map(r=>r.date).filter(Boolean)).si
 function filterRows(s,e,a){return records.filter(r=>inRange(r,s,e)&&(!a||norm(r.agent)===norm(a)))}
 function destroyChart(k){if(charts[k]){charts[k].destroy();delete charts[k]}}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(b.dataset.page).classList.add('active');document.getElementById('pageTitle').textContent=b.textContent;if(b.dataset.page==='scorecard')renderScorecard();if(b.dataset.page==='reports')renderReports()});
-function seedDates(){let now=new Date(),first=new Date(now.getFullYear(),now.getMonth(),1).toISOString().slice(0,10),today=now.toISOString().slice(0,10);['dashStart','scoreStart'].forEach(id=>document.getElementById(id).value=first);['dashEnd','scoreEnd','recDate'].forEach(id=>document.getElementById(id).value=today)}
+function seedDates(){let now=new Date(),day=(now.getDay()+6)%7,mon=new Date(now);mon.setDate(now.getDate()-day);let monday=mon.getFullYear()+'-'+('0'+(mon.getMonth()+1)).slice(-2)+'-'+('0'+mon.getDate()).slice(-2),today=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);['dashStart','scoreStart'].forEach(id=>document.getElementById(id).value=monday);['dashEnd','scoreEnd','recDate'].forEach(id=>document.getElementById(id).value=today)}
 function renderSelectors(){let agents=[...new Set([...agentList,...records.map(r=>r.agent).filter(Boolean)])].sort();['dashAgent','scoreAgent'].forEach(id=>{let el=document.getElementById(id),val=el.value;el.innerHTML=(id==='dashAgent'?'<option value="">All Agents</option>':'<option value="">Select Agent</option>')+agents.map(a=>`<option ${a===val?'selected':''}>${esc(a)}</option>`).join('')});document.getElementById('agentList').innerHTML=agents.map(a=>`<option value="${esc(a)}">`).join('');document.getElementById('recActivity').innerHTML=activities.map(a=>`<option>${esc(a.name)}</option>`).join('')}
 function renderAll(){renderSelectors();renderDashboard();renderRecords();renderActivities();renderReports();renderAgents()}
 function renderAgents(){let el=document.getElementById('agentNameRows');if(!el)return;el.innerHTML=agentList.slice().sort().map(a=>`<tr><td>${esc(a)}</td><td><button class="danger" onclick="removeAgentName('${esc(a).replace(/'/g,"\\'")}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="2" class="small">Wala pang agents. Mag-add sa taas.</td></tr>'}
@@ -286,9 +319,23 @@ async function removeAgentName(name){
   agentList=agentList.filter(a=>norm(a)!==norm(name));write(KEYS.agents,agentList);renderAll();showToast('✓ Removed!');
 }
 function renderDashboard(){let s=dashStart.value,e=dashEnd.value,a=dashAgent.value,rows=filterRows(s,e,a);let agents={};rows.forEach(r=>(agents[r.agent]??=[]).push(r));let summaries=Object.entries(agents).map(([name,rs])=>{let points=rs.reduce((t,r)=>t+Number(r.points||0),0),days=uniqueDays(rs),target=Number(settings.baseTarget||150)*days,pct=target?points/target*100:0;return{name,points,days,target,pct,level:calcLevel(pct)}}).sort((x,y)=>y.pct-x.pct);let totalPoints=rows.reduce((t,r)=>t+Number(r.points||0),0),totalTarget=summaries.reduce((t,x)=>t+x.target,0),pct=totalTarget?totalPoints/totalTarget*100:0;teamPoints.textContent=totalPoints.toLocaleString();teamTarget.textContent=totalTarget.toLocaleString();teamPct.textContent=pct.toFixed(1)+'%';agentCount.textContent=summaries.length;
-destroyChart('ranking');charts.ranking=new Chart(rankingChart,{type:'bar',data:{labels:summaries.map(x=>x.name),datasets:[{label:'KPI %',data:summaries.map(x=>x.pct.toFixed(1))}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
-let levels=['Push Harder','Bronze','Silver','Gold','Diamond'];destroyChart('medal');charts.medal=new Chart(medalChart,{type:'doughnut',data:{labels:levels,datasets:[{data:levels.map(l=>summaries.filter(x=>x.level.name===l).length)}]},options:{responsive:true}});
-let months={};rows.forEach(r=>{let m=r.date.slice(0,7);months[m]=(months[m]||0)+Number(r.points||0)});destroyChart('monthly');charts.monthly=new Chart(monthlyChart,{type:'line',data:{labels:Object.keys(months).sort(),datasets:[{label:'Points',data:Object.keys(months).sort().map(m=>months[m])}]},options:{responsive:true}});
+// 🏆 Rank list na may levels
+rankList.innerHTML=summaries.length?summaries.map((x,i)=>`
+  <div class="rank-row ${i===0?'top1':i===1?'top2':i===2?'top3':''}">
+    <div class="rank-num">${i+1}</div>
+    <div>
+      <div class="rank-name">${esc(x.name)} <span class="badge ${x.level.cls}">${x.level.icon} ${x.level.name}</span></div>
+      <div class="rank-bar"><i style="width:${Math.min(100,x.pct).toFixed(1)}%"></i></div>
+    </div>
+    <div class="rank-pts"><strong>${x.points.toLocaleString()}</strong><div class="rank-sub">${x.pct.toFixed(1)}% ng ${x.target.toLocaleString()} target</div></div>
+  </div>`).join(''):'<div class="small">Walang activity sa napiling date range.</div>';
+// Activity Points — lahat ng activities kita
+let actAgg={};rows.forEach(r=>{actAgg[r.activity]??={count:0,points:0};actAgg[r.activity].count+=Number(r.count||0);actAgg[r.activity].points+=Number(r.points||0)});
+actPointsList.innerHTML=activities.map(ac=>{let g=actAgg[ac.name]||{count:0,points:0};return `<div class="ap-row"><div><div class="ap-name">${esc(ac.name)}</div><div class="ap-sub">${ac.points} pt${ac.points==1?'':'s'} each · ${g.count} na-encode</div></div><div class="ap-pts">${g.points.toLocaleString()}</div></div>`}).join('');
+// Daily activity bar graph
+let daily={};rows.forEach(r=>daily[r.date]=(daily[r.date]||0)+Number(r.points||0));
+let dkeys=Object.keys(daily).sort();
+destroyChart('daily');charts.daily=new Chart(dailyChart,{type:'bar',data:{labels:dkeys,datasets:[{label:'Points',data:dkeys.map(k=>daily[k]),backgroundColor:'#10aebe',borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
 }
 function renderScorecard(){let a=scoreAgent.value,s=scoreStart.value,e=scoreEnd.value,rows=filterRows(s,e,a),points=rows.reduce((t,r)=>t+Number(r.points||0),0),days=uniqueDays(rows),target=Number(settings.baseTarget||150)*days,pct=target?points/target*100:0,l=calcLevel(pct);scoreName.textContent=a||'Select an agent';scorePoints.textContent=points.toLocaleString();scoreTarget.textContent=target.toLocaleString();scorePct.textContent=pct.toFixed(1)+'%';scoreLevel.textContent=l.name;scoreMedal.className='medal '+l.cls;scoreMedal.textContent=l.icon;scoreRows.innerHTML=rows.sort((x,y)=>y.date.localeCompare(x.date)).map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.activity)}</td><td>${r.count}</td><td>${r.points}</td><td>${esc(r.notes)}</td></tr>`).join('');
 let monthly={};rows.forEach(r=>monthly[r.date.slice(0,7)]=(monthly[r.date.slice(0,7)]||0)+Number(r.points||0));destroyChart('scoreMonthly');charts.scoreMonthly=new Chart(scoreMonthlyChart,{type:'bar',data:{labels:Object.keys(monthly).sort(),datasets:[{label:'Points',data:Object.keys(monthly).sort().map(m=>monthly[m])}]},options:{responsive:true}});
@@ -337,15 +384,15 @@ function previewLogo(ev){
   reader.readAsDataURL(file);
 }
 function saveSettings(){
-  settings={...settings,baseTarget:Number(baseTarget.value||150),kpiName:kpiName.value.trim()||'TEAM JOSH KPI',kpiSubtitle:kpiSubtitle.value.trim()||'KPI MONITORING SYSTEM',primaryColor:primaryColor.value,secondaryColor:secondaryColor.value,accentColor:accentColor.value,actionColor:actionColor.value,challengeStart:challengeStart.value||'',challengeEnd:challengeEnd.value||''};
+  settings={...settings,baseTarget:Number(baseTarget.value||150),kpiName:kpiName.value.trim()||'TEAM JOSH KPI',kpiSubtitle:kpiSubtitle.value.trim()||'KPI MONITORING SYSTEM',primaryColor:primaryColor.value,secondaryColor:secondaryColor.value,accentColor:accentColor.value,actionColor:actionColor.value,challengeStart:challengeStart.value||'',challengeEnd:challengeEnd.value||'',sheetsApiUrl:sheetsApiUrl.value.trim()};
   write(KEYS.settings,settings);applyBranding();renderAll();alert('Branding and KPI settings saved.');
 }
 function resetBranding(){
   settings={...settings,kpiName:'TEAM JOSH KPI',kpiSubtitle:'KPI MONITORING SYSTEM',primaryColor:'#006d78',secondaryColor:'#10aebe',accentColor:'#dff7fa',actionColor:'#008896',logoData:''};
-  write(KEYS.settings,settings);loadSettingsToForm();applyBranding();
+  write(KEYS.settings,settings);loadSettingsToForm();applyBranding();if(cloudEnabled())cloudLoad();
 }
 function loadSettingsToForm(){
-  baseTarget.value=settings.baseTarget||150;challengeStart.value=settings.challengeStart||'';challengeEnd.value=settings.challengeEnd||'';kpiName.value=settings.kpiName||'TEAM JOSH KPI';kpiSubtitle.value=settings.kpiSubtitle||'KPI MONITORING SYSTEM';primaryColor.value=settings.primaryColor||'#006d78';secondaryColor.value=settings.secondaryColor||'#10aebe';accentColor.value=settings.accentColor||'#dff7fa';actionColor.value=settings.actionColor||'#008896';
+  baseTarget.value=settings.baseTarget||150;sheetsApiUrl.value=settings.sheetsApiUrl||'';challengeStart.value=settings.challengeStart||'';challengeEnd.value=settings.challengeEnd||'';kpiName.value=settings.kpiName||'TEAM JOSH KPI';kpiSubtitle.value=settings.kpiSubtitle||'KPI MONITORING SYSTEM';primaryColor.value=settings.primaryColor||'#006d78';secondaryColor.value=settings.secondaryColor||'#10aebe';accentColor.value=settings.accentColor||'#dff7fa';actionColor.value=settings.actionColor||'#008896';
 }
 function copyMessage(){navigator.clipboard.writeText(agentMessage.value).then(()=>alert('Message copied.'))}
 async function downloadScorecardPdf(){let el=document.getElementById('scoreCapture'),canvas=await html2canvas(el,{scale:2,useCORS:true}),img=canvas.toDataURL('image/png'),{jsPDF}=window.jspdf,pdf=new jsPDF('p','mm','a4'),w=190,h=canvas.height*w/canvas.width;pdf.addImage(img,'PNG',10,10,w,h);pdf.save((scoreAgent.value||'AGENT')+'_KPI_SCORECARD.pdf')}
@@ -460,7 +507,9 @@ function showToast(msg){
   clearTimeout(showToast._t);showToast._t=setTimeout(()=>toast.classList.remove('show'),2600);
 }
 function agentFormUrl(){
-  let u=new URL(location.href);u.searchParams.set('view','agent');u.hash='';return u.toString();
+  let u=new URL(location.href);u.searchParams.set('view','agent');
+  if(cloudEnabled())u.searchParams.set('api',getApiUrl());
+  u.hash='';return u.toString();
 }
 function copyAgentLink(){
   let link=agentFormUrl();
@@ -491,7 +540,7 @@ async function cloudLoad(quiet){
   if(!cloudEnabled())return;
   try{
     if(!quiet)showToast('⏳ Kinukuha ang data...');
-    let res=await fetch(SHEETS_API_URL);
+    let res=await fetch(getApiUrl());
     let data=await res.json();
     if(data.ok){
       records=(data.records||[]).map(r=>({...r,date:normDate(r.date),count:Number(r.count||0),points:Number(r.points||0)})).filter(r=>r.id&&r.id!=='id'&&r.agent&&r.agent!=='agent');
@@ -501,11 +550,24 @@ async function cloudLoad(quiet){
       if(document.body.classList.contains('agent-mode')){renderAgentForm();updateFormTotals()}
       if(!quiet)showToast('✓ Updated ang data');
     }
-  }catch(e){showToast('⚠ Hindi ma-load ang data. Check internet.')}
+  }catch(e){showToast('⚠ Hindi ma-load: '+(e&&e.message?e.message:'connection error'))}
 }
 async function cloudPost(payload){
-  let res=await fetch(SHEETS_API_URL,{method:'POST',body:JSON.stringify(payload)});
+  let res=await fetch(getApiUrl(),{method:'POST',body:JSON.stringify(payload)});
   return res.json();
+}
+
+async function downloadScreenshot(){
+  let target=document.querySelector('.main')||document.body;
+  showToast('⏳ Kinukuha ang screenshot...');
+  try{
+    let canvas=await html2canvas(target,{scale:2,useCORS:true,backgroundColor:'#f2fbfc',windowWidth:Math.max(1200,target.scrollWidth)});
+    let a=document.createElement('a');
+    a.download='team-josh-dashboard-'+new Date().toISOString().slice(0,10)+'.png';
+    a.href=canvas.toDataURL('image/png');
+    a.click();
+    showToast('✓ Na-save ang screenshot!');
+  }catch(e){showToast('⚠ Hindi makuha ang screenshot.')}
 }
 
 function init(){
