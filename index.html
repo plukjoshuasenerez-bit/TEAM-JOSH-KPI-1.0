@@ -207,7 +207,7 @@ body.agent-mode #agentPortal{display:block}
         <div><label>Challenge Start Date<input type="date" id="challengeStart"></label></div>
         <div><label>Challenge End Date<input type="date" id="challengeEnd"></label></div>
                 <div style="grid-column:1/-1"><label>Supabase Project URL<input id="supabaseUrl" placeholder="https://YOUR-PROJECT.supabase.co"></label></div>
-        <div style="grid-column:1/-1"><label>Supabase Anon Key<input id="supabaseAnonKey" type="password" placeholder="Paste Supabase anon public key"></label></div>
+        <div style="grid-column:1/-1"><label>Supabase Publishable Key<input id="supabaseAnonKey" type="password" placeholder="Supabase publishable key"></label></div>
         <div><button class="btn" onclick="saveSettings()">Save Settings</button></div>
         <div><button class="ghost" onclick="resetBranding()">Reset Branding</button></div>
       </div>
@@ -270,23 +270,25 @@ const TEAM_AGENTS=[
 
 /* ============================================================
    SUPABASE CONFIGURATION
-   Ilagay ang Project URL at anon public key sa Settings.
-   Cloudflare Pages ang hosting; Supabase lang ang shared database.
+   Cloudflare ang hosting; Supabase ang shared database.
+   Naka-configure na ang Project URL at publishable key.
    ============================================================ */
+const DEFAULT_SUPABASE_URL="https://gsdsflapgziwatrmekwt.supabase.co";
+const DEFAULT_SUPABASE_KEY="sb_publishable_82qOmLPCyzxIIxmSCMvYZA_Bs5EKBRW";
 function getSupabaseUrl(){
   try{let p=new URLSearchParams(location.search).get('sburl');if(p&&p.indexOf('https://')===0)return p.replace(/\/$/,'')}catch(e){}
-  return String(settings.supabaseUrl||'').trim().replace(/\/$/,'');
+  return String(settings.supabaseUrl||DEFAULT_SUPABASE_URL).trim().replace(/\/$/,'');
 }
 function getSupabaseKey(){
   try{let p=new URLSearchParams(location.search).get('sbkey');if(p)return p}catch(e){}
-  return String(settings.supabaseAnonKey||'').trim();
+  return String(settings.supabaseAnonKey||DEFAULT_SUPABASE_KEY).trim();
 }
 function supabaseEnabled(){return /^https:\/\//.test(getSupabaseUrl())&&getSupabaseKey().length>20}
 function cloudEnabled(){return supabaseEnabled()}
 
 const KEYS={records:'TJ_KPI_STANDALONE_RECORDS_V1',activities:'TJ_KPI_STANDALONE_ACTIVITIES_V1',settings:'TJ_KPI_STANDALONE_SETTINGS_V1',agents:'TJ_KPI_STANDALONE_AGENTS_V1'};
 const defaultActivities=[['Client Servicing',10],['Prospecting',1],['Client Presentation',50],['Selling Approach',1],['Recruitment',10],['Closing',100],['Training',5],['Branding',1],['Engage',1],['Setting Appointment',10]];
-let records=read(KEYS.records,[]),activities=read(KEYS.activities,defaultActivities.map(x=>({name:x[0],points:x[1]}))),settings=read(KEYS.settings,{baseTarget:150,kpiName:'TEAM JOSH KPI',kpiSubtitle:'KPI MONITORING SYSTEM',primaryColor:'#006d78',secondaryColor:'#10aebe',accentColor:'#dff7fa',actionColor:'#008896',logoData:'',supabaseUrl:'',supabaseAnonKey:''}),agentList=read(KEYS.agents,TEAM_AGENTS.slice());
+let records=read(KEYS.records,[]),activities=read(KEYS.activities,defaultActivities.map(x=>({name:x[0],points:x[1]}))),settings=read(KEYS.settings,{baseTarget:150,kpiName:'TEAM JOSH KPI',kpiSubtitle:'KPI MONITORING SYSTEM',primaryColor:'#006d78',secondaryColor:'#10aebe',accentColor:'#dff7fa',actionColor:'#008896',logoData:'',supabaseUrl:DEFAULT_SUPABASE_URL,supabaseAnonKey:DEFAULT_SUPABASE_KEY}),agentList=read(KEYS.agents,TEAM_AGENTS.slice());
 let charts={};
 function read(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch(e){return f}}function write(k,v){localStorage.setItem(k,JSON.stringify(v))}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -405,7 +407,7 @@ function previewLogo(ev){
   reader.readAsDataURL(file);
 }
 async function saveSettings(){
-  settings={...settings,baseTarget:Number(baseTarget.value||150),kpiName:kpiName.value.trim()||'TEAM JOSH KPI',kpiSubtitle:kpiSubtitle.value.trim()||'KPI MONITORING SYSTEM',primaryColor:primaryColor.value,secondaryColor:secondaryColor.value,accentColor:accentColor.value,actionColor:actionColor.value,challengeStart:challengeStart.value||'',challengeEnd:challengeEnd.value||'',supabaseUrl:supabaseUrl.value.trim(),supabaseAnonKey:supabaseAnonKey.value.trim()};
+  settings={...settings,baseTarget:Number(baseTarget.value||150),kpiName:kpiName.value.trim()||'TEAM JOSH KPI',kpiSubtitle:kpiSubtitle.value.trim()||'KPI MONITORING SYSTEM',primaryColor:primaryColor.value,secondaryColor:secondaryColor.value,accentColor:accentColor.value,actionColor:actionColor.value,challengeStart:challengeStart.value||'',challengeEnd:challengeEnd.value||'',supabaseUrl:supabaseUrl.value.trim()||DEFAULT_SUPABASE_URL,supabaseAnonKey:supabaseAnonKey.value.trim()||DEFAULT_SUPABASE_KEY};
   write(KEYS.settings,settings);
   applyBranding();renderAll();
   if(document.body.classList.contains('agent-mode'))renderAgentForm();
@@ -431,7 +433,7 @@ function resetBranding(){
   write(KEYS.settings,settings);loadSettingsToForm();applyBranding();if(cloudEnabled())cloudLoad();
 }
 function loadSettingsToForm(){
-  baseTarget.value=settings.baseTarget||150;supabaseUrl.value=settings.supabaseUrl||'';supabaseAnonKey.value=settings.supabaseAnonKey||'';challengeStart.value=settings.challengeStart||'';challengeEnd.value=settings.challengeEnd||'';kpiName.value=settings.kpiName||'TEAM JOSH KPI';kpiSubtitle.value=settings.kpiSubtitle||'KPI MONITORING SYSTEM';primaryColor.value=settings.primaryColor||'#006d78';secondaryColor.value=settings.secondaryColor||'#10aebe';accentColor.value=settings.accentColor||'#dff7fa';actionColor.value=settings.actionColor||'#008896';
+  baseTarget.value=settings.baseTarget||150;supabaseUrl.value=settings.supabaseUrl||DEFAULT_SUPABASE_URL;supabaseAnonKey.value=settings.supabaseAnonKey||DEFAULT_SUPABASE_KEY;challengeStart.value=settings.challengeStart||'';challengeEnd.value=settings.challengeEnd||'';kpiName.value=settings.kpiName||'TEAM JOSH KPI';kpiSubtitle.value=settings.kpiSubtitle||'KPI MONITORING SYSTEM';primaryColor.value=settings.primaryColor||'#006d78';secondaryColor.value=settings.secondaryColor||'#10aebe';accentColor.value=settings.accentColor||'#dff7fa';actionColor.value=settings.actionColor||'#008896';
 }
 function copyMessage(){navigator.clipboard.writeText(agentMessage.value).then(()=>alert('Message copied.'))}
 async function downloadScorecardPdf(){let el=document.getElementById('scoreCapture'),canvas=await html2canvas(el,{scale:2,useCORS:true}),img=canvas.toDataURL('image/png'),{jsPDF}=window.jspdf,pdf=new jsPDF('p','mm','a4'),w=190,h=canvas.height*w/canvas.width;pdf.addImage(img,'PNG',10,10,w,h);pdf.save((scoreAgent.value||'AGENT')+'_KPI_SCORECARD.pdf')}
@@ -548,7 +550,7 @@ function showToast(msg){
 }
 function agentFormUrl(){
   let u=new URL(location.href);u.searchParams.set('view','agent');
-  if(supabaseEnabled()){u.searchParams.set('sburl',getSupabaseUrl());u.searchParams.set('sbkey',getSupabaseKey())}
+  u.searchParams.delete('sburl');u.searchParams.delete('sbkey');
   u.hash='';return u.toString();
 }
 function copyAgentLink(){
@@ -567,7 +569,7 @@ function viewDashboard(){
   renderAll();
 }
 
-/* ===== SAFE CLOUD SYNC: SUPABASE PRIMARY + GOOGLE SHEETS MIGRATION ===== */
+/* ===== SAFE CLOUD SYNC: SUPABASE PRIMARY ===== */
 function normDate(v){
   let s=String(v||'').trim();
   if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
