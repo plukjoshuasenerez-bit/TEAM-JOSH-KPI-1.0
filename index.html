@@ -411,9 +411,18 @@ async function saveEditRecord(id){
 async function deleteRecord(id){
 if(cloudEnabled()){if(!confirm('Delete this record?'))return;showToast('⏳ Dine-delete...');try{let out=await cloudPost({action:'delete',id});if(!out.ok)throw 0;await cloudLoad(true);showToast('✓ Deleted!')}catch(e){showToast('⚠ Hindi na-delete. Try again.')}return}
 records=records.filter(r=>r.id!==id);write(KEYS.records,records);renderAll()}
-function clearRecords(){
-if(cloudEnabled())return alert('Naka-Supabase mode ka. Para i-clear lahat, gamitin ang delete button bawat record para ligtas ang shared data.');
-if(confirm('Clear all standalone KPI records?')){records=[];write(KEYS.records,records);renderAll()}}
+async function clearRecords(){
+  if(!confirm('Buburahin LAHAT ng records? Babalik sa ZERO ang dashboard. Hindi na ito maibabalik.'))return;
+  records=[];write(KEYS.records,records);editingId=null;
+  if(cloudEnabled()){
+    showToast('⏳ Kina-clear ang lahat...');
+    try{
+      await supabaseWrite({records:[],agents:agentList,activities,settings:{...settings,supabaseAnonKey:''}});
+      showToast('✓ Na-clear lahat ng records!');
+    }catch(e){showToast('⚠ Hindi na-clear sa Supabase. Try again.');return}
+  }else{showToast('✓ Na-clear lahat ng records!')}
+  renderAll();
+}
 function addActivity(){let name=activityName.value.trim(),points=Number(activityPoints.value);if(!name||points<0)return alert('Enter activity name and points.');if(activities.some(a=>norm(a.name)===norm(name)))return alert('Activity already exists.');activities.push({name,points});write(KEYS.activities,activities);if(supabaseEnabled())supabaseWrite({records,agents:agentList,activities,settings:{...settings,supabaseAnonKey:''}}).catch(console.warn);activityName.value='';activityPoints.value='';renderAll()}
 function renderActivities(){activityRows.innerHTML=activities.map((a,i)=>`<tr><td><input value="${esc(a.name)}" onchange="editActivity(${i},'name',this.value)"></td><td><input type="number" min="0" value="${a.points}" onchange="editActivity(${i},'points',this.value)"></td><td><button class="danger" onclick="removeActivity(${i})">Delete</button></td></tr>`).join('')}
 function editActivity(i,k,v){activities[i][k]=k==='points'?Number(v):v.trim();write(KEYS.activities,activities);if(supabaseEnabled())supabaseWrite({records,agents:agentList,activities,settings:{...settings,supabaseAnonKey:''}}).catch(console.warn);renderSelectors()}
