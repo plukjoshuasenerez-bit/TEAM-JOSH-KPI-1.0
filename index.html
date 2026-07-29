@@ -209,7 +209,7 @@ body.agent-mode #agentPortal{display:block}
     </div>
 
     <div class="card">
-      <h3 style="margin:4px 0 10px">🔧 Google Apps Script — Backend Code (v3)</h3>
+      <h3 style="margin:4px 0 10px">🔧 Google Apps Script — Backend Code (v4)</h3>
       <div class="notice">Ito yung code na ipe-paste sa Google Sheet → <b>Extensions → Apps Script</b>. Kapag may bagong update ng app, dito mo na lang laging iko-copy. Pagka-paste: <b>Deploy → Manage deployments → ✏️ Edit → New version → Deploy</b>, tapos i-paste yung Web App URL sa Settings sa taas.</div>
       <div class="actions">
         <button class="btn2" onclick="copyAppsScript()">📋 Copy Apps Script</button>
@@ -261,13 +261,14 @@ body.agent-mode #agentPortal{display:block}
 </div>
 <script type="text/plain" id="appsScriptCode">
 // ============================================================
-// TEAM JOSH KPI — Google Apps Script backend (v3 - date fix)
+// TEAM JOSH KPI — Google Apps Script backend (v4 - settings sync)
 // I-paste ito sa Extensions > Apps Script ng Google Sheet mo,
 // PALITAN yung lumang code, tapos i-redeploy as NEW VERSION.
 // ============================================================
 
 const SHEET_NAME = 'Records';
 const AGENTS_SHEET = 'Agents';
+const CONFIG_SHEET = 'Config';
 
 function doGet(e) {
   const sh = getSheet_();
@@ -292,7 +293,12 @@ function doGet(e) {
   const agents = arows.map(function(r) { return String(r[0]).trim(); })
                       .filter(function(n) { return n && n !== 'name'; });
 
-  return json_({ ok: true, records: data, agents: agents });
+  var csh = getConfigSheet_();
+  var cvals = csh.getDataRange().getValues();
+  cvals.shift();
+  var config = cvals.map(function(r) { return String(r[0] || '').replace(/^#/, ''); }).join('');
+
+  return json_({ ok: true, records: data, agents: agents, config: config || null });
 }
 
 function doPost(e) {
@@ -343,6 +349,17 @@ function doPost(e) {
       return json_({ ok: true });
     }
 
+    if (body.action === 'saveConfig') {
+      var csh = getConfigSheet_();
+      var str = String(body.config || '');
+      if (csh.getLastRow() > 1) csh.deleteRows(2, csh.getLastRow() - 1);
+      var CHUNK = 45000;
+      for (var c = 0; c < str.length; c += CHUNK) {
+        csh.appendRow(['#' + str.slice(c, c + CHUNK)]);
+      }
+      return json_({ ok: true });
+    }
+
     return json_({ ok: false, error: 'unknown action' });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
@@ -366,6 +383,14 @@ function getAgentsSheet_() {
   var sh = ss.getSheetByName(AGENTS_SHEET);
   if (!sh) sh = ss.insertSheet(AGENTS_SHEET);
   if (sh.getLastRow() === 0) sh.appendRow(['name']);
+  return sh;
+}
+
+function getConfigSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(CONFIG_SHEET);
+  if (!sh) sh = ss.insertSheet(CONFIG_SHEET);
+  if (sh.getLastRow() === 0) sh.appendRow(['config']);
   return sh;
 }
 
@@ -491,10 +516,10 @@ records=records.filter(r=>r.id!==id);write(KEYS.records,records);renderAll()}
 function clearRecords(){
 if(cloudEnabled())return alert('Naka-Google Sheets mode ka. Para i-clear lahat, buksan ang Google Sheet at doon i-delete ang mga rows (huwag idelete ang header row).');
 if(confirm('Clear all standalone KPI records?')){records=[];write(KEYS.records,records);renderAll()}}
-function addActivity(){let name=activityName.value.trim(),points=Number(activityPoints.value);if(!name||points<0)return alert('Enter activity name and points.');if(activities.some(a=>norm(a.name)===norm(name)))return alert('Activity already exists.');activities.push({name,points});write(KEYS.activities,activities);activityName.value='';activityPoints.value='';renderAll()}
+function addActivity(){let name=activityName.value.trim(),points=Number(activityPoints.value);if(!name||points<0)return alert('Enter activity name and points.');if(activities.some(a=>norm(a.name)===norm(name)))return alert('Activity already exists.');activities.push({name,points});write(KEYS.activities,activities);pushConfig();activityName.value='';activityPoints.value='';renderAll()}
 function renderActivities(){activityRows.innerHTML=activities.map((a,i)=>`<tr><td><input value="${esc(a.name)}" onchange="editActivity(${i},'name',this.value)"></td><td><input type="number" min="0" value="${a.points}" onchange="editActivity(${i},'points',this.value)"></td><td><button class="danger" onclick="removeActivity(${i})">Delete</button></td></tr>`).join('')}
-function editActivity(i,k,v){activities[i][k]=k==='points'?Number(v):v.trim();write(KEYS.activities,activities);renderSelectors()}
-function removeActivity(i){if(confirm('Delete this activity? Existing records will stay unchanged.')){activities.splice(i,1);write(KEYS.activities,activities);renderAll()}}
+function editActivity(i,k,v){activities[i][k]=k==='points'?Number(v):v.trim();write(KEYS.activities,activities);pushConfig();renderSelectors()}
+function removeActivity(i){if(confirm('Delete this activity? Existing records will stay unchanged.')){activities.splice(i,1);write(KEYS.activities,activities);pushConfig();renderAll()}}
 function renderReports(){let s=dashStart.value,e=dashEnd.value,rows=filterRows(s,e,'');let groups={};rows.forEach(r=>(groups[r.agent]??=[]).push(r));let list=Object.entries(groups).map(([agent,rs])=>{let points=rs.reduce((t,r)=>t+Number(r.points||0),0),days=uniqueDays(rs),target=days*Number(settings.baseTarget||150),pct=target?points/target*100:0;return{agent,points,days,target,pct,level:calcLevel(pct)}}).sort((a,b)=>b.pct-a.pct);reportRows.innerHTML=list.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.agent)}</td><td>${x.points}</td><td>${x.days}</td><td>${x.target}</td><td>${x.pct.toFixed(1)}%</td><td><span class="badge ${x.level.cls}">${x.level.name}</span></td></tr>`).join('')}
 function exportCsv(){let csv=Papa.unparse(records);downloadBlob(csv,'TEAM_JOSH_KPI_RECORDS.csv','text/csv')}
 function downloadBlob(data,name,type){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
@@ -524,11 +549,11 @@ function previewLogo(ev){
 }
 function saveSettings(){
   settings={...settings,baseTarget:Number(baseTarget.value||150),kpiName:kpiName.value.trim()||'TEAM JOSH KPI',kpiSubtitle:kpiSubtitle.value.trim()||'KPI MONITORING SYSTEM',primaryColor:primaryColor.value,secondaryColor:secondaryColor.value,accentColor:accentColor.value,actionColor:actionColor.value,challengeStart:challengeStart.value||'',challengeEnd:challengeEnd.value||'',sheetsApiUrl:sheetsApiUrl.value.trim()};
-  write(KEYS.settings,settings);applyBranding();renderAll();alert('Branding and KPI settings saved.');
+  write(KEYS.settings,settings);applyBranding();renderAll();pushConfig();alert('Branding and KPI settings saved. Naka-sync na sa lahat ng devices.');
 }
 function resetBranding(){
   settings={...settings,kpiName:'TEAM JOSH KPI',kpiSubtitle:'KPI MONITORING SYSTEM',primaryColor:'#076c7c',secondaryColor:'#12b0c4',accentColor:'#dff7fa',actionColor:'#d81b74',logoData:''};
-  write(KEYS.settings,settings);loadSettingsToForm();applyBranding();if(cloudEnabled())cloudLoad();
+  write(KEYS.settings,settings);loadSettingsToForm();applyBranding();pushConfig();
 }
 function loadSettingsToForm(){
   baseTarget.value=settings.baseTarget||150;sheetsApiUrl.value=settings.sheetsApiUrl||'';challengeStart.value=settings.challengeStart||'';challengeEnd.value=settings.challengeEnd||'';kpiName.value=settings.kpiName||'TEAM JOSH KPI';kpiSubtitle.value=settings.kpiSubtitle||'KPI MONITORING SYSTEM';primaryColor.value=settings.primaryColor||'#076c7c';secondaryColor.value=settings.secondaryColor||'#12b0c4';accentColor.value=settings.accentColor||'#dff7fa';actionColor.value=settings.actionColor||'#d81b74';
@@ -688,6 +713,29 @@ function normDate(v){
   if(!isNaN(d)){let y=d.getFullYear(),m=('0'+(d.getMonth()+1)).slice(-2),dd=('0'+d.getDate()).slice(-2);return y+'-'+m+'-'+dd}
   return String(v||'').trim();
 }
+/* ===== SETTINGS / ACTIVITIES SYNC (v4): naka-save na rin sa Google Sheet "Config" tab ===== */
+function applyCloudConfig(raw){
+  if(!raw)return;
+  try{
+    let cfg=JSON.parse(raw);if(!cfg||typeof cfg!=='object')return;
+    if(Array.isArray(cfg.activities)&&cfg.activities.length){activities=cfg.activities;write(KEYS.activities,activities)}
+    if(cfg.settings&&typeof cfg.settings==='object'){
+      let keepUrl=settings.sheetsApiUrl;
+      settings={...settings,...cfg.settings};
+      if(keepUrl)settings.sheetsApiUrl=keepUrl;
+      write(KEYS.settings,settings);
+      try{applyBranding()}catch(e){}
+      try{loadSettingsToForm()}catch(e){}
+    }
+  }catch(e){}
+}
+async function pushConfig(){
+  if(!cloudEnabled())return;
+  try{
+    let cfgSettings={...settings};delete cfgSettings.sheetsApiUrl;
+    await cloudPost({action:'saveConfig',config:JSON.stringify({activities:activities,settings:cfgSettings})});
+  }catch(e){}
+}
 async function cloudLoad(quiet){
   if(!cloudEnabled())return;
   try{
@@ -698,6 +746,7 @@ async function cloudLoad(quiet){
       records=(data.records||[]).map(r=>({...r,date:normDate(r.date),count:Number(r.count||0),points:Number(r.points||0)})).filter(r=>r.id&&r.id!=='id'&&r.agent&&r.agent!=='agent');
       write(KEYS.records,records);
       if(Array.isArray(data.agents)&&data.agents.length){agentList=data.agents;write(KEYS.agents,agentList)}
+      applyCloudConfig(data.config);
       renderAll();
       if(document.body.classList.contains('agent-mode')){renderAgentForm();updateFormTotals()}
       if(!quiet)showToast('✓ Updated ang data');
